@@ -15,5 +15,7 @@ var Beacon = cli.Command{
 		beacon.StartCommand(),
 		beacon.StopCommand(),
 		beacon.RestartCommand(),
+		beacon.ReplaceCommand(),
+		beacon.LogsCommand(),
 	},
 }

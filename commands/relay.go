@@ -15,5 +15,7 @@ var Relay = cli.Command{
 		relay.StartCommand(),
 		relay.StopCommand(),
 		relay.RestartCommand(),
+		relay.ReplaceCommand(),
+		relay.LogsCommand(),
 	},
 }
