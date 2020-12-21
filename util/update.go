@@ -11,7 +11,7 @@ import (
 	"github.com/inconshreveable/go-update"
 )
 
-var currentVersion = "1.0"
+var currentVersion = "1.3.0"
 
 func CheckAndUpdate() bool {
 	latestVersion, err := FetchLatestVersion("marlinctl")
