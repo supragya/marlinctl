@@ -19,6 +19,7 @@ func CreateCommand() *cli.Command {
 	var address, name string
 	var version string
 	var abci_version string
+	var sync_mode string
 
 	return &cli.Command{
 		Name:  "create",
@@ -80,97 +81,113 @@ func CreateCommand() *cli.Command {
 				Value:       "latest",
 				Destination: &abci_version,
 			},
+			&cli.StringFlag{
+				Name:        "sync-mode",
+				Usage:       "--sync-mode <MODE>",
+				Value:       "light",
+				Destination: &sync_mode,
+			},
 		},
 		Action: func(c *cli.Context) error {
-			program := chain + "_relay"
-
-			out, _ := exec.Command("sudo", "supervisorctl", "status", program).Output()
-			if !strings.Contains(string(out), "no such process") {
-				// Already exists
-				return errors.New("Already exists")
-			}
-
-			// Set up abci first
-			if abci, found := abciMap[chain]; found {
-				err := abci.Create(datadir, abci_version)
-				if err != nil {
-					return err
-				}
-			} else {
-				return errors.New("Unrecognized chain")
-			}
-
-			// User details
-			usr, err := util.GetUser()
-			if err != nil {
-				return err
-			}
-
-			// Tilde expansion
-			if datadir == "~" {
-				datadir = usr.HomeDir
-			} else if strings.HasPrefix(datadir, "~/") {
-				datadir = filepath.Join(usr.HomeDir, datadir[2:])
-			}
-
-			// Version
-			if version == "latest" {
-				fmt.Println(program, "fetching latest binaries...")
-				latestVersion, err := util.FetchLatestVersion(program)
-				if err != nil {
-					return err
-				}
-				version = latestVersion
-				fmt.Println(program, "latest binary version: ", latestVersion)
-			}
-
-			// relay executable
-			err = util.Fetch("https://storage.googleapis.com/marlin-artifacts/bin/"+program+"-"+version+"-"+runtime.GOOS+"-"+runtime.GOARCH, usr.HomeDir+"/.marlin/ctl/bin/"+program+"-"+version, usr.Username, true, false)
-			if err != nil {
-				return err
-			}
-
-			// relay config
-			err = util.Fetch("https://storage.googleapis.com/marlin-artifacts/configs/"+program+"-"+version+".conf", usr.HomeDir+"/.marlin/ctl/configs/"+program+"-"+version+".conf", usr.Username, false, false)
-			if err != nil {
-				return err
-			}
-
-			err = util.TemplatePlace(
-				usr.HomeDir+"/.marlin/ctl/configs/"+program+"-"+version+".conf",
-				"/etc/supervisor/conf.d/"+program+".conf",
-				struct {
-					Program, User, UserHome                 string
-					DiscoveryAddrs, HeartbeatAddrs, Datadir string
-					DiscoveryPort, PubsubPort               uint
-					Address, Name                           string
-					Version                                 string
-				}{
-					program, usr.Username, usr.HomeDir,
-					discovery_addrs, heartbeat_addrs, datadir,
-					discovery_port, pubsub_port,
-					address, name,
-					version,
-				},
-			)
-			if err != nil {
-				return err
-			}
-
-			_, err = exec.Command("supervisorctl", "reread").Output()
-			if err != nil {
-				return err
-			}
-
-			_, err = exec.Command("supervisorctl", "add", program).Output()
-			if err != nil {
-				return err
-			}
-
-			output, _ := exec.Command("supervisorctl", "status").Output()
-			fmt.Print(string(output))
-
-			return nil
+			return Create(chain, discovery_addrs, heartbeat_addrs, datadir, discovery_port, pubsub_port, address, name, version, abci_version, sync_mode)
 		},
 	}
+}
+
+func Create(chain, discovery_addrs, heartbeat_addrs, datadir string,
+	discovery_port, pubsub_port uint,
+	address, name string,
+	version string,
+	abci_version string,
+	sync_mode string) error {
+
+	program := chain + "_relay"
+
+	out, _ := exec.Command("sudo", "supervisorctl", "status", program).Output()
+	if !strings.Contains(string(out), "no such process") {
+		// Already exists
+		return errors.New("Already exists")
+	}
+
+	// Set up abci first
+	if abci, found := abciMap[chain]; found {
+		err := abci.Create(datadir, abci_version, sync_mode)
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("Unrecognized chain")
+	}
+
+	// User details
+	usr, err := util.GetUser()
+	if err != nil {
+		return err
+	}
+
+	// Tilde expansion
+	if datadir == "~" {
+		datadir = usr.HomeDir
+	} else if strings.HasPrefix(datadir, "~/") {
+		datadir = filepath.Join(usr.HomeDir, datadir[2:])
+	}
+
+	// Version
+	if version == "latest" {
+		fmt.Println(program, "fetching latest binaries...")
+		latestVersion, err := util.FetchLatestVersion(program)
+		if err != nil {
+			return err
+		}
+		version = latestVersion
+		fmt.Println(program, "latest binary version: ", latestVersion)
+	}
+
+	// relay executable
+	err = util.Fetch("https://storage.googleapis.com/marlin-artifacts/bin/"+program+"-"+version+"-"+runtime.GOOS+"-"+runtime.GOARCH, usr.HomeDir+"/.marlin/ctl/bin/"+program+"-"+version, usr.Username, true, false)
+	if err != nil {
+		return err
+	}
+
+	// relay config
+	err = util.Fetch("https://storage.googleapis.com/marlin-artifacts/configs/"+program+"-"+version+".conf", usr.HomeDir+"/.marlin/ctl/configs/"+program+"-"+version+".conf", usr.Username, false, false)
+	if err != nil {
+		return err
+	}
+
+	err = util.TemplatePlace(
+		usr.HomeDir+"/.marlin/ctl/configs/"+program+"-"+version+".conf",
+		"/etc/supervisor/conf.d/"+program+".conf",
+		struct {
+			Program, User, UserHome                 string
+			DiscoveryAddrs, HeartbeatAddrs, Datadir string
+			DiscoveryPort, PubsubPort               uint
+			Address, Name                           string
+			Version                                 string
+		}{
+			program, usr.Username, usr.HomeDir,
+			discovery_addrs, heartbeat_addrs, datadir,
+			discovery_port, pubsub_port,
+			address, name,
+			version,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = exec.Command("supervisorctl", "reread").Output()
+	if err != nil {
+		return err
+	}
+
+	_, err = exec.Command("supervisorctl", "add", program).Output()
+	if err != nil {
+		return err
+	}
+
+	output, _ := exec.Command("supervisorctl", "status").Output()
+	fmt.Print(string(output))
+
+	return nil
 }

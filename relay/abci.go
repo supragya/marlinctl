@@ -1,7 +1,7 @@
 package relay
 
 type Abci interface {
-	Create(string, string) error
+	Create(string, string, string) error
 	Destroy() error
 }
 
