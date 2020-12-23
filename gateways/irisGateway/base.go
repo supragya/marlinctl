@@ -10,5 +10,7 @@ var IrisGateway = cli.Command{
 	Subcommands: []*cli.Command{
 		CreateCommand(),
 		DestroyCommand(),
+		ReplaceCommand(),
+		LogsCommand(),
 	},
 }

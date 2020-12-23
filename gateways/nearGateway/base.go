@@ -10,5 +10,7 @@ var NearGateway = cli.Command{
 	Subcommands: []*cli.Command{
 		CreateCommand(),
 		DestroyCommand(),
+		ReplaceCommand(),
+		LogsCommand(),
 	},
 }

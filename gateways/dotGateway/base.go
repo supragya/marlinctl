@@ -10,5 +10,7 @@ var DotGateway = cli.Command{
 	Subcommands: []*cli.Command{
 		CreateCommand(),
 		DestroyCommand(),
+		ReplaceCommand(),
+		LogsCommand(),
 	},
 }

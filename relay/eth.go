@@ -12,7 +12,7 @@ import (
 
 type EthAbci struct{}
 
-func (abci *EthAbci) Create(datadir string, version string) error {
+func (abci *EthAbci) Create(datadir string, version string, syncmode string) error {
 	// User details
 	usr, err := util.GetUser()
 	if err != nil {
@@ -46,9 +46,9 @@ func (abci *EthAbci) Create(datadir string, version string) error {
 		usr.HomeDir+"/.marlin/ctl/configs/"+program+"-"+version+".conf",
 		"/etc/supervisor/conf.d/"+program+".conf",
 		struct {
-			Program, User, UserHome, DataDir, Version string
+			Program, User, UserHome, DataDir, Version, SyncMode string
 		}{
-			program, usr.Username, usr.HomeDir, datadir, version,
+			program, usr.Username, usr.HomeDir, datadir, version, syncmode,
 		},
 	)
 	if err != nil {
