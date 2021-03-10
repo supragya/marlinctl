@@ -1,3 +1,6 @@
+# NOTE
+**marlinctl has been deprecated and is being superseded by [marlinctl2](https://github.com/marlinprotocol/marlinctl2). Please use marlinctl2.**
+
 # Marlinctl
 
 Marlinctl provides a command line interface for setting up the different components of the Marlin network.
